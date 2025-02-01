@@ -1,12 +1,10 @@
+import { respondWithSucess } from './utils/common';
 
-exports.handler = async(event: any) => {
+exports.handler = async (event: any) => {
     try {
-        console.log('hello', event);
-        console.log('Hello from patient lambda');
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ message: 'Hello from patient lambda' })
-        }
+        console.log('Api gateway event', event);
+        console.log('table name', process.env.PATIENT_TABLE);
+        return respondWithSucess({ message: 'Hello from patient lambda' });
     }
     catch (err) {
         console.log('error message', err);
