@@ -10,10 +10,12 @@
       "**/*.d.ts",
       "**/*.js",
       "tsconfig.json",
+      "tsconfig.*.json",
       "package*.json",
       "yarn.lock",
       "node_modules",
-      "test"
+      "src/test",
+      "dist"
     ]
   },
   "context": {

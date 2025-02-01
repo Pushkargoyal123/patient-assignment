@@ -6,7 +6,9 @@
       "es2020",
       "dom"
     ],
-    "declaration": true,
+    "rootDir": "src/lambda",
+    "outDir": "dist",
+    "declaration": false,
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -24,8 +26,10 @@
       "./node_modules/@types"
     ]
   },
+  "include": ["src/lambda/**/*.ts"],
   "exclude": [
     "node_modules",
-    "cdk.out"
+    "cdk.out",
+    "dist"
   ]
 }
