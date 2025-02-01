@@ -3,6 +3,7 @@ import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import { AWS_REGION } from '../constant';
 
 export function createCognitoPool(scope: Construct): cdk.aws_apigateway.CognitoUserPoolsAuthorizer {
   // Create a Cognito User Pool
@@ -36,6 +37,18 @@ export function createCognitoPool(scope: Construct): cdk.aws_apigateway.CognitoU
 
   new cdk.CfnOutput(scope, 'UserPoolClientId', {
     value: userPoolClient.userPoolClientId,
+  });
+
+  // Set up a Cognito domain
+  const cognitoDomain = userPool.addDomain('MyCognitoDomain', {
+    cognitoDomain: {
+      domainPrefix: 'myapp-patient',
+    },
+  });
+
+  new cdk.CfnOutput(scope, 'CognitoDomainURL', {
+    value: `https://${cognitoDomain.domainName}.auth.${AWS_REGION}.amazoncognito.com`,
+    description: 'Cognito Hosted UI Domain',
   });
 
   const cognitoPolicy = new iam.PolicyStatement({

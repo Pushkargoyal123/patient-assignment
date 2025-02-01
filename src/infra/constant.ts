@@ -4,3 +4,5 @@ export const API_GATEWAY_METHODS = {
     PUT: 'PUT',
     DELETE: 'DELETE'
 }
+
+export const AWS_REGION = 'us-east-1';
