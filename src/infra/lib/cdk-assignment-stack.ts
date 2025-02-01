@@ -10,7 +10,8 @@ export class CdkAssignmentStack extends cdk.Stack {
     // Create a pateint Lambda function
     const patientLambda = new Function(this, 'PatientLambda', {
       functionName: 'PatientLambdaFunction',
-      runtime: Runtime.NODEJS_20_X,
+      runtime: Runtime.NODEJS_LATEST,
+      memorySize: 256,
       handler: 'index.handler',
       code: Code.fromAsset('dist/patient'),
     });
