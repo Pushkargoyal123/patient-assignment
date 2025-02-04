@@ -8,6 +8,7 @@ import { createTable } from '../util/database.util';
 import { createLambda } from '../util/lambda.util';
 import { createCognitoPool } from '../util/cognito.util';
 import { API_GATEWAY_METHODS } from '../constant';
+import { Code, LayerVersion, Runtime } from 'aws-cdk-lib/aws-lambda';
 
 export class CdkAssignmentStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -16,10 +17,15 @@ export class CdkAssignmentStack extends cdk.Stack {
     // Create DynamoDB table
     const patientTable = createTable(this, 'PatientTable', 'id');
 
+    const layer = new LayerVersion(this, 'packageLayer', {
+      code: Code.fromAsset('src/layers'),
+      compatibleRuntimes: [Runtime.NODEJS_LATEST],
+    });
+
     // Create a pateint Lambda function and its API Gateway end point
     const patientLambda = createLambda(this, 'PatientLambda', 'patient', {
       PATIENT_TABLE: patientTable.tableName
-    });
+    }, [layer]);
 
     // granting permission to the lambda function to access the table
     patientTable.grantReadWriteData(patientLambda.lambdaFunction);
