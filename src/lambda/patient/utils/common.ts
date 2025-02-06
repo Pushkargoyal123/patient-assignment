@@ -5,13 +5,13 @@ export function respondWithSucess(body: object): ResponseModel{
     return {
         statusCode: 200, // status code 200
         headers:  {contentType: 'application/json'}, // content type
-        body: JSON.stringify(body) // body of the response
+        body: JSON.stringify({data: body}) // body of the response
     }
 }
 
 export function respondWithError(statusCode: number, message: string): ResponseModel{
     return{
         statusCode: statusCode,
-        body: JSON.stringify({ error: message })
+        body: JSON.stringify({error: message})
     }
 }

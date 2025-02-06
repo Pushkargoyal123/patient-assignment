@@ -19,6 +19,6 @@ export const insertPatient = async (event: APIGatewayEvent) => {
         updatedAt: new Date().toLocaleDateString('en-GB')
     }
     // inserting the patient record in the database
-    const response = await create(item, process.env.tableName as string);
+    const response = await create(item, process.env.PATIENT_TABLE as string);
     return response;
 }

@@ -38,5 +38,10 @@ export class CdkAssignmentStack extends cdk.Stack {
       authorizationType: apigateway.AuthorizationType.COGNITO,
       authorizer,
     });
+
+    patientLambda.apiRoute.addMethod(API_GATEWAY_METHODS.POST, new apigateway.LambdaIntegration(patientLambda.lambdaFunction), {
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+      authorizer,
+    });
   }
 }

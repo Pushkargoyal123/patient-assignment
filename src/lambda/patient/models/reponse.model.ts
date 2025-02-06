@@ -5,3 +5,5 @@ export interface ResponseModel {
         contentType: string;
     };
 }
+
+export interface ErrorResponse { statusCode?: number; errors?: string }
