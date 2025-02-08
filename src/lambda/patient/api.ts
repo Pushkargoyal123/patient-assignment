@@ -1,6 +1,9 @@
 // external dependencies
-import { APIGatewayEvent } from "aws-lambda";
+import { APIGatewayEvent, DynamoDBStreamEvent } from "aws-lambda";
 import { v4 as uuidv4 } from 'uuid';
+import { Client } from '@opensearch-project/opensearch';
+import { AwsSigv4Signer } from "@opensearch-project/opensearch/aws";
+import { defaultProvider } from "@aws-sdk/credential-provider-node";
 import { ExpressionAttributeValueMap, QueryOutput, ScanOutput, UpdateItemOutput } from "aws-sdk/clients/dynamodb";
 
 // internal dependencies
@@ -9,6 +12,16 @@ import { validatePayload } from "./utils/validator";
 import { PatientData } from "./models/patient.model";
 import { create, query, scanTable, update } from "./utils/databaseOperation";
 import { convertToExpressionAttributeNames, getDate } from "./utils/common";
+
+// open search client
+const openSearchClient = new Client({ 
+    ...AwsSigv4Signer({
+        region: process.env.AWS_REGION || "us-east-1",
+        service: "es",
+        getCredentials: () => defaultProvider()(),
+      }),
+    node: process.env.OPENSEARCH_ENDPOINT 
+});
 
 /**
  * Inserts a new patient record into the database.
@@ -36,7 +49,7 @@ export const insertPatient = async (event: APIGatewayEvent) => {
     const item: PatientData = {
         id: uuidv4(),
         ...JSON.parse(payload as string),
-        isDeleted: false,   
+        isDeleted: false,
         createdAt: getDate(),
         updatedAt: getDate()
     }
@@ -45,13 +58,55 @@ export const insertPatient = async (event: APIGatewayEvent) => {
     return response;
 }
 
-export const getAllPatients = async () => {
+export const getAllPatients = async (event: APIGatewayEvent) => {
+    const queryParams = event.queryStringParameters;
+    // condition to search the patients based on conditions or allergies in queryParameters
+    if (queryParams && (queryParams.condition || queryParams.allergy)) {
+        const shouldQuery = [];
+        if (queryParams.allergy) {
+            shouldQuery.push({ match: { allergies: queryParams.allergy } });
+        }
+        if (queryParams.condition) {
+            shouldQuery.push({ match: { conditions: queryParams.condition } });
+        }
+
+        const searchQuery = {
+            index: "patients",
+            body: {
+                query: {
+                    bool: {
+                        should: shouldQuery,
+                        minimum_should_match: 1, // At least one condition must match
+                    },
+                },
+            },
+        };
+        console.log('search query', searchQuery);
+        const result = await openSearchClient.search(searchQuery);
+        return result.body.hits.hits.map((hit: any) => hit._source);
+    }
     const fieldsToReturn = 'id, name, address, conditions, allergies, createdAt, updatedAt';
-    const { expressionAttributeNames, finalFieldsToReturn} = convertToExpressionAttributeNames(fieldsToReturn);
+    const { expressionAttributeNames, finalFieldsToReturn } = convertToExpressionAttributeNames(fieldsToReturn);
     const response: ScanOutput = await scanTable(process.env.PATIENT_TABLE as string, 'isDeleted = :isDeleted', { ':isDeleted': false } as unknown as ExpressionAttributeValueMap, expressionAttributeNames, finalFieldsToReturn);
     return response.Items;
 }
 
+/**
+ * Retrieves a patient by their ID from the database.
+ *
+ * @param {APIGatewayEvent} event - The API Gateway event containing the path parameters.
+ * @returns {Promise<any>} - A promise that resolves to the patient data if found.
+ * @throws {Error} - Throws an error if the patient is not found.
+ *
+ * @example
+ * // Example usage:
+ * const event = {
+ *   pathParameters: {
+ *     id: '123'
+ *   }
+ * };
+ * const patient = await getPatientById(event);
+ */
 export const getPatientById = async (event: APIGatewayEvent) => {
     const patientId = event.pathParameters?.id;
     const keyConditionExpression = 'id = :id';
@@ -74,23 +129,52 @@ export const updatePatient = async (event: APIGatewayEvent) => {
     await validatePayload(payload, UpdatePatient);
     // fetching the existing patient details
     await getPatientById(event) as unknown as PatientData;
-    
+
     // updating the project updated date
     payload.updatedAt = getDate();
-    const response: UpdateItemOutput = await update(process.env.PATIENT_TABLE as string, {id: patientId}, payload);
+    const response: UpdateItemOutput = await update(process.env.PATIENT_TABLE as string, { id: patientId }, payload);
     return response.Attributes;
 }
 
+/**
+ * Deletes a patient record by marking it as deleted in the database.
+ *
+ * @param {APIGatewayEvent} event - The API Gateway event containing the request data.
+ * @returns {Promise<{message: string}>} - A promise that resolves to an object containing a success message.
+ *
+ * @throws {Error} - Throws an error if the patient ID is not found or if there is an issue with the database operation.
+ */
 export const deletePatient = async (event: APIGatewayEvent) => {
     const patientId = event.pathParameters?.id;
     // fetching the existing project details
     await getPatientById(event) as unknown as PatientData;
-    
+
     // updating the project updated date
     const updatedData = {
         isDeleted: true,
         updatedAt: getDate()
     }
-    await update(process.env.PATIENT_TABLE as string, {id: patientId}, updatedData);
-    return {message: 'Patient deleted successfully'};
+    await update(process.env.PATIENT_TABLE as string, { id: patientId }, updatedData);
+    return { message: 'Patient deleted successfully' };
+}
+
+export const syncDynamoDataWithOpenSearch = async (event: DynamoDBStreamEvent) => {
+    for (const record of (event).Records) {
+        if (record.eventName === 'INSERT' || record.eventName === 'MODIFY') {
+            const newItem = record.dynamodb?.NewImage;
+            console.log('new item', newItem);
+            const patient = {
+                id: newItem?.id?.S,
+                allergies: newItem?.allergies?.L?.map((item) => item.S) || [],
+                conditions: newItem?.conditions?.L?.map((item) => item.S) || [],
+            };
+
+            await openSearchClient.index({
+                index: 'patients',
+                id: patient.id,
+                body: patient,
+            });
+        }
+    }
+    return { message: 'Data synced successfully' };
 }

@@ -1,25 +1,32 @@
 // external dependencies
-import { APIGatewayEvent } from 'aws-lambda';
+import { APIGatewayEvent, DynamoDBStreamEvent } from 'aws-lambda';
 
 // internal dependencies
 import { respondWithError, respondWithSucess } from './utils/common';
 import { ErrorResponse, ResponseModel } from './models/reponse.model';
 import { API_END_POINTS, API_GATEWAY_METHODS } from './constant';
-import { deletePatient, getAllPatients, getPatientById, insertPatient, updatePatient } from './api';
+import { deletePatient, getAllPatients, getPatientById, insertPatient, syncDynamoDataWithOpenSearch, updatePatient } from './api';
 
 exports.handler = async (event: APIGatewayEvent): Promise<ResponseModel> => {
     try {
         console.log('Api gateway event', event);
         console.log('table name', process.env.PATIENT_TABLE);
+
+        // condition to sync data from dynamoDB to open search
+        if ((event as unknown as DynamoDBStreamEvent).Records) {
+            const response: object = await syncDynamoDataWithOpenSearch(event as unknown as DynamoDBStreamEvent);
+            return respondWithSucess(response);
+        }
+
         let response;
         switch (event.httpMethod) {
             case API_GATEWAY_METHODS.GET: // GET API call
                 if (event.resource === API_END_POINTS.GET_ALL_PATIENT) {
-                    response = await getAllPatients();
+                    response = await getAllPatients(event);
                 } else if (event.resource === API_END_POINTS.GET_PATIENT) {
                     response = await getPatientById(event);
                 } else {
-                    return respondWithError(404, 'Invalid API endpoint -> '+ event.resource);
+                    return respondWithError(404, 'Invalid API endpoint -> ' + event.resource);
                 }
                 return respondWithSucess(response as object);
 
@@ -32,19 +39,19 @@ exports.handler = async (event: APIGatewayEvent): Promise<ResponseModel> => {
                 return respondWithSucess(response);
 
             case API_GATEWAY_METHODS.PUT: // put api call
-            if (event.resource === API_END_POINTS.UPDATE_PATIENT) {
-                response = await updatePatient(event) as object;
-            } else {
-                return respondWithError(404, 'Invalid API endpoint');
-            }
+                if (event.resource === API_END_POINTS.UPDATE_PATIENT) {
+                    response = await updatePatient(event) as object;
+                } else {
+                    return respondWithError(404, 'Invalid API endpoint');
+                }
                 return respondWithSucess(response);
 
             case API_GATEWAY_METHODS.DELETE: //delete api call
-            if (event.resource === API_END_POINTS.DELETE_PATIENT) {
-                response = await deletePatient(event);
-            } else {
-                return respondWithError(404, 'Invalid API endpoint');
-            }
+                if (event.resource === API_END_POINTS.DELETE_PATIENT) {
+                    response = await deletePatient(event);
+                } else {
+                    return respondWithError(404, 'Invalid API endpoint');
+                }
                 return respondWithSucess(response);
         }
         return respondWithError(404, 'Invalid request method');

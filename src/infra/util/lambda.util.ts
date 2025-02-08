@@ -2,6 +2,7 @@
 import { Function, Runtime, Code, FunctionProps, LayerVersion } from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import { Construct } from 'constructs';
+import { Role } from 'aws-cdk-lib/aws-iam';
 
 // internal dependencies
 import { API_GATEWAY_METHODS } from '../constant';
@@ -16,7 +17,7 @@ import { API_GATEWAY_METHODS } from '../constant';
  * @param {LayerVersion[]} layerArray - An array of Lambda Layer versions to include in the function.
  * @returns {{ lambdaFunction: Function, apiRoute: apigateway.IResource }} An object containing the created Lambda function and the main API Gateway route.
  */
-export function createLambda(scope: Construct, name: string, folderName: string, environment: { [key: string]: string }, layerArray: LayerVersion[]): { lambdaFunction: Function, apiRoute: apigateway.IResource } {
+export function createLambda(scope: Construct, name: string, folderName: string, environment: { [key: string]: string }, layerArray: LayerVersion[], role: Role, authorizer: apigateway.IAuthorizer): { lambdaFunction: Function, apiRoute: apigateway.IResource } {
     const params: FunctionProps = {
         functionName: `${name}Function`,
         runtime: Runtime.NODEJS_LATEST,
@@ -24,7 +25,8 @@ export function createLambda(scope: Construct, name: string, folderName: string,
         environment: environment,
         memorySize: 256,
         code: Code.fromAsset(`dist/${folderName}`),
-        layers: layerArray
+        layers: layerArray,
+        role: role
     }
     const lambdaFunction = new Function(scope, name, params);
 
@@ -36,9 +38,18 @@ export function createLambda(scope: Construct, name: string, folderName: string,
     // adding id path
     const idResource = mainPath.addResource('{id}');
 
-    idResource.addMethod(API_GATEWAY_METHODS.GET, new apigateway.LambdaIntegration(lambdaFunction));
-    idResource.addMethod(API_GATEWAY_METHODS.PUT, new apigateway.LambdaIntegration(lambdaFunction));
-    idResource.addMethod(API_GATEWAY_METHODS.DELETE, new apigateway.LambdaIntegration(lambdaFunction));
+    idResource.addMethod(API_GATEWAY_METHODS.GET, new apigateway.LambdaIntegration(lambdaFunction), {
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+        authorizer,
+    });
+    idResource.addMethod(API_GATEWAY_METHODS.PUT, new apigateway.LambdaIntegration(lambdaFunction), {
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+        authorizer,
+    });
+    idResource.addMethod(API_GATEWAY_METHODS.DELETE, new apigateway.LambdaIntegration(lambdaFunction), {
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+        authorizer,
+    });
 
     return { lambdaFunction, apiRoute: mainPath };
 }
