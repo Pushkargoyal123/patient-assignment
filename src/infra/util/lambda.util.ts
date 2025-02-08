@@ -19,6 +19,10 @@ export function createLambda(scope: Construct, name: string, folderName: string,
     
     // adding main route
     const mainPath = api.root.addResource(folderName);
+    // adding id path
+    const idResource = mainPath.addResource('{id}');
+
+    idResource.addMethod('GET', new apigateway.LambdaIntegration(lambdaFunction));
 
     return { lambdaFunction, apiRoute: mainPath };
 }

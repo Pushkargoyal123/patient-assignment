@@ -4,6 +4,7 @@ export interface PatientData {
     address: string;
     conditions: string[];
     allergies: string[];
+    isDeleted: boolean;
     createdAt: string;
     updatedAt: string;
 }

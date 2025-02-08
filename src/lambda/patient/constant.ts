@@ -6,7 +6,8 @@ export const API_GATEWAY_METHODS = {
 }
 
 export const API_END_POINTS = {
-    GET_PATIENT: '/patient',
+    GET_ALL_PATIENT: '/patient',
+    GET_PATIENT: '/patient/{id}',
     POST_PATIENT: '/patient',
 }
 
