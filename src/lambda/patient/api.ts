@@ -1,14 +1,14 @@
 // external dependencies
 import { APIGatewayEvent } from "aws-lambda";
 import { v4 as uuidv4 } from 'uuid';
-import { ExpressionAttributeValueMap, QueryOutput, ScanOutput } from "aws-sdk/clients/dynamodb";
+import { ExpressionAttributeValueMap, QueryOutput, ScanOutput, UpdateItemOutput } from "aws-sdk/clients/dynamodb";
 
 // internal dependencies
-import { PatientRecord } from "./validateModels/patient";
+import { CreatePatient, UpdatePatient } from "./validateModels/patient";
 import { validatePayload } from "./utils/validator";
 import { PatientData } from "./models/patient.model";
-import { create, query, scanTable } from "./utils/databaseOperation";
-import { convertToExpressionAttributeNames } from "./utils/common";
+import { create, query, scanTable, update } from "./utils/databaseOperation";
+import { convertToExpressionAttributeNames, getDate } from "./utils/common";
 
 /**
  * Inserts a new patient record into the database.
@@ -28,18 +28,17 @@ import { convertToExpressionAttributeNames } from "./utils/common";
  *   })
  * };
  * const response = await insertPatient(event);
- * console.log(response);
  */
 export const insertPatient = async (event: APIGatewayEvent) => {
     const payload = event.body; // payload of the API
-    await validatePayload(JSON.parse(payload as string), PatientRecord); // validating the payload
+    await validatePayload(JSON.parse(payload as string), CreatePatient); // validating the payload
     const id = uuidv4();
     const item: PatientData = {
         id: uuidv4(),
         ...JSON.parse(payload as string),
-        isDeleted: false,
-        createdAt: new Date().toLocaleDateString('en-GB'),
-        updatedAt: new Date().toLocaleDateString('en-GB')
+        isDeleted: false,   
+        createdAt: getDate(),
+        updatedAt: getDate()
     }
     // inserting the patient record in the database
     const response = await create(item, process.env.PATIENT_TABLE as string);
@@ -66,4 +65,32 @@ export const getPatientById = async (event: APIGatewayEvent) => {
         throw new Error(JSON.stringify({ statusCode: 404, error: 'Patient not found with id ' + patientId }));
     }
     return response.Items[0];
+}
+
+export const updatePatient = async (event: APIGatewayEvent) => {
+    const patientId = event.pathParameters?.id;
+    const payload = JSON.parse(event.body as string);
+    // validating the payload
+    await validatePayload(payload, UpdatePatient);
+    // fetching the existing patient details
+    await getPatientById(event) as unknown as PatientData;
+    
+    // updating the project updated date
+    payload.updatedAt = getDate();
+    const response: UpdateItemOutput = await update(process.env.PATIENT_TABLE as string, {id: patientId}, payload);
+    return response.Attributes;
+}
+
+export const deletePatient = async (event: APIGatewayEvent) => {
+    const patientId = event.pathParameters?.id;
+    // fetching the existing project details
+    await getPatientById(event) as unknown as PatientData;
+    
+    // updating the project updated date
+    const updatedData = {
+        isDeleted: true,
+        updatedAt: getDate()
+    }
+    await update(process.env.PATIENT_TABLE as string, {id: patientId}, updatedData);
+    return {message: 'Patient deleted successfully'};
 }

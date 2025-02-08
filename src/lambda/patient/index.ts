@@ -5,7 +5,7 @@ import { APIGatewayEvent } from 'aws-lambda';
 import { respondWithError, respondWithSucess } from './utils/common';
 import { ErrorResponse, ResponseModel } from './models/reponse.model';
 import { API_END_POINTS, API_GATEWAY_METHODS } from './constant';
-import { getAllPatients, getPatientById, insertPatient } from './api';
+import { deletePatient, getAllPatients, getPatientById, insertPatient, updatePatient } from './api';
 
 exports.handler = async (event: APIGatewayEvent): Promise<ResponseModel> => {
     try {
@@ -22,6 +22,7 @@ exports.handler = async (event: APIGatewayEvent): Promise<ResponseModel> => {
                     return respondWithError(404, 'Invalid API endpoint -> '+ event.resource);
                 }
                 return respondWithSucess(response as object);
+
             case API_GATEWAY_METHODS.POST: // post API call
                 if (event.resource === API_END_POINTS.POST_PATIENT) {
                     response = await insertPatient(event);
@@ -29,10 +30,22 @@ exports.handler = async (event: APIGatewayEvent): Promise<ResponseModel> => {
                     return respondWithError(404, 'Invalid API endpoint');
                 }
                 return respondWithSucess(response);
+
             case API_GATEWAY_METHODS.PUT: // put api call
-                return respondWithSucess({ message: 'Hello from patient lambda' });
+            if (event.resource === API_END_POINTS.UPDATE_PATIENT) {
+                response = await updatePatient(event) as object;
+            } else {
+                return respondWithError(404, 'Invalid API endpoint');
+            }
+                return respondWithSucess(response);
+
             case API_GATEWAY_METHODS.DELETE: //delete api call
-                return respondWithSucess({ message: 'Hello from patient lambda' });
+            if (event.resource === API_END_POINTS.DELETE_PATIENT) {
+                response = await deletePatient(event);
+            } else {
+                return respondWithError(404, 'Invalid API endpoint');
+            }
+                return respondWithSucess(response);
         }
         return respondWithError(404, 'Invalid request method');
     }

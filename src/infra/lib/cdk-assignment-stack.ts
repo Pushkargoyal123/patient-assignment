@@ -5,7 +5,7 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 
 // local dependencies
 import { createTable } from '../util/database.util';
-import { createLambda } from '../util/lambda.util';
+import { addMethodToApiGateway, createLambda } from '../util/lambda.util';
 import { createCognitoPool } from '../util/cognito.util';
 import { API_GATEWAY_METHODS } from '../constant';
 import { Code, LayerVersion, Runtime } from 'aws-cdk-lib/aws-lambda';
@@ -34,14 +34,6 @@ export class CdkAssignmentStack extends cdk.Stack {
     const authorizer = createCognitoPool(this);
 
     // add method to the api gateway
-    patientLambda.apiRoute.addMethod(API_GATEWAY_METHODS.GET, new apigateway.LambdaIntegration(patientLambda.lambdaFunction), {
-      authorizationType: apigateway.AuthorizationType.COGNITO,
-      authorizer,
-    });
-
-    patientLambda.apiRoute.addMethod(API_GATEWAY_METHODS.POST, new apigateway.LambdaIntegration(patientLambda.lambdaFunction), {
-      authorizationType: apigateway.AuthorizationType.COGNITO,
-      authorizer,
-    });
+    addMethodToApiGateway(patientLambda.apiRoute, [API_GATEWAY_METHODS.GET, API_GATEWAY_METHODS.POST, API_GATEWAY_METHODS.PUT, API_GATEWAY_METHODS.DELETE], patientLambda.lambdaFunction, authorizer);
   }
 }
