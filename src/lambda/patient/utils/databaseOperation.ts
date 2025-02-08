@@ -42,7 +42,7 @@ export const create = async (item: object, tableName: string): Promise<object> =
  * @param {ExpressionAttributeValueMap} ExpressionAttributeValues - One or more values that can be substituted in an expression.
  * @returns {Promise<object>} - A promise that resolves to the query response from DynamoDB.
  */
-export const query = async (tableName: string, KeyConditionExpression: string, filterExpression: string, ExpressionAttributeValues: ExpressionAttributeValueMap, ExpressionAttributeNames?: ExpressionAttributeNameMap, projectionExpression?: ProjectionExpression, indexName = 'id'): Promise<object> => {
+export const query = async (tableName: string, KeyConditionExpression: string, filterExpression: string, ExpressionAttributeValues: ExpressionAttributeValueMap, ExpressionAttributeNames?: ExpressionAttributeNameMap, projectionExpression?: ProjectionExpression, indexName?: string): Promise<object> => {
     const docClient = new AWS.DynamoDB.DocumentClient({
         region: AWS_DEFAULT_REGION,
     });

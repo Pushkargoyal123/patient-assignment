@@ -41,7 +41,7 @@ exports.handler = async (event: APIGatewayEvent): Promise<ResponseModel> => {
         let errorMessage: ErrorResponse = {};
         if (typeof (err as Error).message === 'string') {
             errorMessage = JSON.parse((err as Error).message);
-            return respondWithError(errorMessage['statusCode'] as number, JSON.stringify(errorMessage) || 'Unknown error');
+            return respondWithError(errorMessage['statusCode'] as number, JSON.stringify(errorMessage.error) || 'Unknown error');
         }
         return respondWithError(500, JSON.stringify(err));
     }

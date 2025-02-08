@@ -10,7 +10,7 @@ export const validatePayload = async (payload: Record<string, unknown>, schema: 
     if (errors.length > 0) {
         throw new Error(JSON.stringify({
             statusCode: 400,
-            errors: errors
+            error: errors.map((error) => error.constraints)
         }))
     } else {
         return userDto;

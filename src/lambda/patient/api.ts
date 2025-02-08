@@ -8,6 +8,7 @@ import { PatientRecord } from "./validateModels/patient";
 import { validatePayload } from "./utils/validator";
 import { PatientData } from "./models/patient.model";
 import { create, query, scanTable } from "./utils/databaseOperation";
+import { convertToExpressionAttributeNames } from "./utils/common";
 
 /**
  * Inserts a new patient record into the database.
@@ -47,7 +48,8 @@ export const insertPatient = async (event: APIGatewayEvent) => {
 
 export const getAllPatients = async () => {
     const fieldsToReturn = 'id, name, address, conditions, allergies, createdAt, updatedAt';
-    const response: ScanOutput = await scanTable(process.env.PATIENT_TABLE as string, 'isDeleted = :isDeleted', { ':isDeleted': false } as unknown as ExpressionAttributeValueMap, undefined, fieldsToReturn);
+    const { expressionAttributeNames, finalFieldsToReturn} = convertToExpressionAttributeNames(fieldsToReturn);
+    const response: ScanOutput = await scanTable(process.env.PATIENT_TABLE as string, 'isDeleted = :isDeleted', { ':isDeleted': false } as unknown as ExpressionAttributeValueMap, expressionAttributeNames, finalFieldsToReturn);
     return response.Items;
 }
 
@@ -61,7 +63,7 @@ export const getPatientById = async (event: APIGatewayEvent) => {
     }
     const response: QueryOutput = await query(process.env.PATIENT_TABLE as string, keyConditionExpression, filterExpression, expressionAttributeValues as unknown as ExpressionAttributeValueMap);
     if (!response.Items?.length) {
-        throw new Error(JSON.stringify({ statusCode: 404, errors: 'Patient not found with id' + patientId }));
+        throw new Error(JSON.stringify({ statusCode: 404, error: 'Patient not found with id ' + patientId }));
     }
     return response.Items[0];
 }

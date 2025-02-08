@@ -6,4 +6,4 @@ export interface ResponseModel {
     };
 }
 
-export interface ErrorResponse { statusCode?: number; errors?: string }
+export interface ErrorResponse { statusCode?: number; error?: string }
