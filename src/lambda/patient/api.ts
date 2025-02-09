@@ -14,13 +14,13 @@ import { create, query, scanTable, update } from "./utils/databaseOperation";
 import { convertToExpressionAttributeNames, getDate } from "./utils/common";
 
 // open search client
-const openSearchClient = new Client({ 
+const openSearchClient = new Client({
     ...AwsSigv4Signer({
         region: process.env.AWS_REGION || "us-east-1",
         service: "es",
         getCredentials: () => defaultProvider()(),
-      }),
-    node: process.env.OPENSEARCH_ENDPOINT 
+    }),
+    node: process.env.OPENSEARCH_ENDPOINT || "https://dummy-opensearch-url.com"
 });
 
 /**

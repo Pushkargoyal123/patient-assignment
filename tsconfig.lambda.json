@@ -2,8 +2,8 @@
     "extends": "./tsconfig.json",
     "compilerOptions": {
       "outDir": "dist",
-      "rootDir": "src/lambda"
+      "rootDir": "src"
     },
-    "include": ["src/lambda/**/*.ts"]
+    "include": ["src/lambda/**/*.ts", "src/test/**/*.ts"]
   }
   

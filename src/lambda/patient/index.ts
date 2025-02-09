@@ -7,7 +7,7 @@ import { ErrorResponse, ResponseModel } from './models/reponse.model';
 import { API_END_POINTS, API_GATEWAY_METHODS } from './constant';
 import { deletePatient, getAllPatients, getPatientById, insertPatient, syncDynamoDataWithOpenSearch, updatePatient } from './api';
 
-exports.handler = async (event: APIGatewayEvent): Promise<ResponseModel> => {
+const handler = async (event: APIGatewayEvent): Promise<ResponseModel> => {
     try {
         console.log('Api gateway event', event);
         console.log('table name', process.env.PATIENT_TABLE);
@@ -66,3 +66,5 @@ exports.handler = async (event: APIGatewayEvent): Promise<ResponseModel> => {
         return respondWithError(500, JSON.stringify(err));
     }
 }
+
+export { handler };
